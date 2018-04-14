@@ -1,0 +1,5 @@
+tensorflow-gpu
+keras
+h5py
+numpy
+python-chess
