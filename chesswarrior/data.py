@@ -73,7 +73,7 @@ class DataReader(object):
                     if game_counter % 200 == 0:
                         logger.info(f"processed {game_counter} games")
         if len(self.data_buffer) != 0:  #dump last steps
-            with open(self.json_filepath + "last_steps.json", "w") as file:
+            with open(self.json_filepath + "\\" + "last_steps.json", "w") as file:
                 try:
                     json.dump(self.data_buffer, file)
                     self.data_buffer = []
