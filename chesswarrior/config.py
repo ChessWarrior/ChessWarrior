@@ -23,6 +23,10 @@ class ResourceConfig(object):
 
     sl_processed_data_dir = os.path.join(_sl_base_data_dir, "processed") #json files
 
+    json_size = 1024 #moves in a json file
+
+    min_elo = 600.0 #min_elo weight = 0
+    max_elo = 2350.0 #max_elo weight = 1
 
 class ModelConfig(object):
     """Model Configuration"""
