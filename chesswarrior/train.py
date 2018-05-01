@@ -29,7 +29,10 @@ class Trainer(object):
             try:
                 self.model = load_model(self.config.resources.best_model_dir+"best_model.h5") #h5 file (model and weights)
             except OSError:
-                self.model = ChessModel(config=self.config)
+                self.model = ChessModel(config=self.config).model.compile(optimizer="adam",
+                                                                          loss="categorical_crossentropy",
+                                                                          loss_weights=self.config.training.loss_weights)
+
 
         self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
         if not self.data_files:
@@ -41,6 +44,7 @@ class Trainer(object):
         self.training()
 
     def training(self):
+
         for epoch in range(self.epoch0, self.epoch0 + self.config.training.epoches):
             logger.info('epoch %d start!' % epoch)
 
