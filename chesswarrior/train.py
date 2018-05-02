@@ -29,9 +29,11 @@ class Trainer(object):
             try:
                 self.model = load_model(self.config.resources.best_model_dir+"best_model.h5") #h5 file (model and weights)
             except OSError:
-                self.model = ChessModel(config=self.config).model.compile(optimizer="adam",
-                                                                          loss="categorical_crossentropy",
-                                                                          loss_weights=self.config.training.loss_weights)
+                self.ChessModel = ChessModel(config=self.config)
+                self.ChessModel.build()
+                self.model = self.ChessModel.model
+                self.model.compile(optimizer=keras.optimizers.adagrad(), loss="categorical_crossentropy",
+                                   loss_weights=self.config.training.loss_weights)
 
 
         self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
@@ -51,24 +53,18 @@ class Trainer(object):
             for data_file in self.data_files:
                 with open(self.config.resources.sl_processed_data_dir+"\\"+data_file, "r") as file:
                     data = file.read()
-                    gen = Batchgen(data, self.config.training.batch_size)
-                    for batch in gen:
-                        # TODO: your keras code here
-                        pass
+                    feature_plane_array, policy_array, value_array = Batchgen(data, self.config.training.batch_size)
+                    self.model.fit(feature_plane_array, [policy_array, value_array], verbose=2, validation_split=0.05, shuffle=True)
 
             if epoch == self.config.training.test_interval:
-                self.testing()
+                pass
+                #self.testing()
             elif epoch == self.config.training.save_interval:
                 self.model.save(self.config.resources.best_model_dir+"best_model.h5")
                 with open(self.config.resources.best_model_dir+"epoch.txt", "w") as file:
                     file.write(epoch)
             else:
                 continue
-
-    def testing(self):
-        """have a test on model to calculate f1 score and elo"""
-        # TODO: your keras code here
-        pass
 
     def f1_score(self):
         # Not urgent

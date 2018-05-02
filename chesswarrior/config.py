@@ -33,6 +33,7 @@ class ModelConfig(object):
 
     cnn_filter_num = 256
     res_later_num = 7
+    cnn_first_filter_num =
     # TODO add your keras structure
     pass
 

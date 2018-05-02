@@ -31,12 +31,12 @@ class ChessModel(object):
         """
         model_config = self.config.model
         block1 = Conv2D()(input_data)
-        block1 = BatchNormalization()
+        block1 = BatchNormalization()(block1)
 
         block2 = Conv2D()(block1)
-        block2 = BatchNormalization()
+        block2 = BatchNormalization()(block2)
 
-        output_data = merge([], mode="sum")
+        output_data = merge([input_data, block2], mode="sum")
         output_data = Activation("relu")
         return output_data
 
