@@ -12,6 +12,7 @@ from keras.layers.convolutional import Conv2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import MaxPool2D, AveragePooling2D
 from keras.optimizers import SGD, Adam, Adadelta
+from keras.regularizers import l2
 
 class ChessModel(object):
     """
@@ -30,36 +31,49 @@ class ChessModel(object):
         :return: new_whole_nn
         """
         model_config = self.config.model
-        block1 = Conv2D()(input_data)
-        block1 = BatchNormalization()(block1)
+        block1 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_filter_size,
+                        padding="same", data_format="channels_first",use_bias=False,
+                        kernel_regularizer=l2(model_config.l2_regularizer),activation="relu")(input_data)
+        block1 = BatchNormalization(axis=1)(block1)
 
-        block2 = Conv2D()(block1)
-        block2 = BatchNormalization()(block2)
+        block2 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_filter_size,
+                        padding="same", data_format="channels_first",use_bias=False,
+                        kernel_regularizer=l2(model_config.l2_regularizer),activation="relu")(block1)
+        block2 = BatchNormalization(axis=1)(block2)
 
         output_data = merge([input_data, block2], mode="sum")
         output_data = Activation("relu")
         return output_data
 
 
-
     def build(self):
         model_config = Config.model
         input_data = Input(shape=(18, 8, 8))
 
-        block1 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=, padding="same", data_format="channels_first",
-                        activation="relu")(input_data)
+        block1 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_first_filter_num,
+                        padding="same", data_format="channels_first", activation="relu")(input_data)
         block1 = BatchNormalization(axis=1)(block1)
 
         for _ in range(model_config):
             block1 = self.add_rsnet(block1)
 
-        block2 = Conv2D()(block1)
-        block2 = BatchNormalization()(block2)
-        block2 = Flatten()(block2)
+        block2_policy = Conv2D(filters=2, kernel_size=1, data_format="channels_first",
+                               use_bias=False, kernel_regularizer=l2(model_config.l2_regularizer),
+                               activation="relu")(block1)
+        block2_policy = BatchNormalization(axis=1)(block2_policy)
+        block2_policy = Flatten()(block2_policy)
+        policy_out = Dense(units=self.config.label_len)(block2_policy)
 
-        fc1 = Dense()(block2)
-        fc1 = Dropout()(fc1)
+        block2_value = Conv2D(filters=4, kernel_size=1, data_format="channels_first",
+                               use_bias=False, kernel_regularizer=l2(model_config.l2_regularizer),
+                               activation="relu")(block1)
+        block2_value = BatchNormalization(axis=1)(block2_value)
+        block2_value = Flatten()(block2_value)
 
-        predict = Dense()(fc1)
+        fc_value = Dense(units=model_config.value_fc_size, kernel_regularizer=l2(model_config.l2_regularizer),
+                         activation="relu")(block2_value)
+        fc_value = Dropout(rate=model_config.drop_out_rate)(fc_value)
+        value_out = Dense(units=1, kernel_regularizer=l2(model_config.l2_regularizer),
+                          activation="tanh")(fc_value)
 
-        self.model = Model(inputs=input_data, outputs=predict)
+        self.model = Model(inputs=input_data, outputs=[policy_out, value_out])

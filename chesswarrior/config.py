@@ -2,6 +2,7 @@
 
 import os
 
+from .utils import get_all_possible_moves
 # -----------------------------------
 # configurations about some PARAMETERS
 # -----------------------------------
@@ -30,10 +31,13 @@ class ResourceConfig(object):
 
 class ModelConfig(object):
     """Model Configuration"""
-
     cnn_filter_num = 256
     res_later_num = 7
-    cnn_first_filter_num =
+    cnn_first_filter_num = 5
+    cnn_filter_size = 3
+    l2_regularizer = 1e-4
+    value_fc_size = 256
+    drop_out_rate = 0.5
     # TODO add your keras structure
     pass
 
@@ -68,3 +72,7 @@ class Config(object):
     training = TrainerConfig()
 
     playing = PlayerConfig()
+
+    labels = get_all_possible_moves()
+
+    label_len = len(labels)
