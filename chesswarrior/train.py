@@ -2,6 +2,7 @@
 
 import logging
 import os
+import json
 from queue import Queue
 
 import keras
@@ -29,7 +30,12 @@ class Trainer(object):
             try:
                 self.model = load_model(self.config.resources.best_model_dir+"best_model.h5") #h5 file (model and weights)
             except OSError:
-                self.model = ChessModel(config=self.config)
+                self.ChessModel = ChessModel(config=self.config)
+                self.ChessModel.build()
+                self.model = self.ChessModel.model
+                self.model.compile(optimizer=keras.optimizers.adagrad(), loss=['categorical_crossentropy', 'mean_squared_error'],
+                                   loss_weights=self.config.training.loss_weights, metrics=['accuracy', 'mse'])
+
 
         self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
         if not self.data_files:
@@ -41,30 +47,27 @@ class Trainer(object):
         self.training()
 
     def training(self):
+
         for epoch in range(self.epoch0, self.epoch0 + self.config.training.epoches):
             logger.info('epoch %d start!' % epoch)
 
             for data_file in self.data_files:
-                with open(self.config.resources.sl_processed_data_dir+"\\"+data_file, "r") as file:
-                    data = file.read()
-                    gen = Batchgen(data, self.config.training.batch_size)
-                    for batch in gen:
-                        # TODO: your keras code here
-                        pass
+                with open(self.config.resources.sl_processed_data_dir+"\\"+data_file, "r", encoding='utf-8') as file:
+                    data = json.load(file)
+                    batches = Batchgen(data, self.config.training.batch_size)
+                    for batch_data_i in batches:
+                        feature_plane_array, policy_array, value_array = batch_data_i
+                        self.model.fit(feature_plane_array, [policy_array, value_array], verbose=1, validation_split=0.05, shuffle=True)
 
             if epoch == self.config.training.test_interval:
-                self.testing()
+                pass
+                #self.testing()
             elif epoch == self.config.training.save_interval:
-                self.model.save(self.config.resources.best_model_dir+"best_model.h5")
-                with open(self.config.resources.best_model_dir+"epoch.txt", "w") as file:
-                    file.write(epoch)
+                self.model.save(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
+                with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "w") as file:
+                    file.write(str(epoch))
             else:
                 continue
-
-    def testing(self):
-        """have a test on model to calculate f1 score and elo"""
-        # TODO: your keras code here
-        pass
 
     def f1_score(self):
         # Not urgent

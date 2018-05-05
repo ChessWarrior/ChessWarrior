@@ -4,6 +4,8 @@
 import chess
 import logging
 import random
+import numpy as np
+from functools import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -90,16 +92,134 @@ class ChessBoard(object):
         self.board.push_uci(move)
         self.num_halfmoves += 1
 
+PIECES_ORDER = 'KQRBNPkqrbnp'
+PIECES_INDEX = {PIECES_ORDER[i] : i for i in range(12)}
+EXTEND_SPACE = {
+'1' : '1',
+'2' : '11',
+'3' : '111',
+'4' : '1111',
+'5' : '11111',
+'6' : '111111',
+'7' : '1111111',
+'8' : '11111111',
+'/' : ''
+}
+
+def is_black_turn(fen):
+    return fen.split(' ')[1] == 'b'
+
+def evaluate_board(fen):
+    chess_piece_value = {'Q' : 14, 'R' : 5, 'B' : 3, 'K' : 3, 'N' : 3, 'P' : 1}
+    current_value = 0.0
+    total_value = 0.0
+    for ch in fen.split(' ')[0]:
+        if not ch.isalpha():
+            continue
+        if ch.isupper():
+            current_value += chess_piece_value[ch]
+            total_value += chess_piece_value[ch]
+        else:
+            current_value -= chess_piece_value[ch.upper()]
+            total_value += chess_piece_value[ch.upper()]
+
+    value_rate = current_value / total_value
+    if is_black_turn(fen):
+        value_rate = -value_rate
+    return np.tanh(value_rate * 3)
+
+def get_board_string(board_fen_0):
+
+    rows = board_fen_0.split('/')
+    board_string = reduce(lambda x, y: x + y,
+                          list(reduce(lambda x, y: x + y, list(map(lambda x: x if x.isalpha() else EXTEND_SPACE[x], row)))
+                        for row in rows))
+    assert len(board_string) == 64
+    return board_string
+
+def get_history_plane(board_fen):
+
+    board_fen_list = board_fen.split(' ')
+
+    history_plane = np.zeros(shape=(12, 8, 8))
+
+    board_string = get_board_string(board_fen_list[0])
+
+    for i in range(8):
+        for j in range(8):
+            piece = board_string[(i << 3) | j]
+            if piece.isalpha():
+                history_plane[PIECES_INDEX[piece]][i][j] = 1
+    return history_plane
+
+
+def fen_positon_to_my_position(fen_position):
+    return 8 - int(fen_position[1]), ord(fen_position[0]) - ord('a')
+
+def get_auxilary_plane(board_fen):
+
+    board_fen_list = board_fen.split(' ')
+
+    en_passant_state = board_fen_list[3]
+    en_passant_plane = np.zeros((8, 8))
+    if en_passant_state != '-':
+        position = fen_positon_to_my_position(en_passant_state)
+        en_passant_plane[position[0]][position[1]] = 1
+
+    fifty_move_count = int(board_fen_list[4])
+    fifty_move_plane = np.full((8, 8), fifty_move_count)
+
+    castling_state = board_fen_list[2]
+
+    K_castling_plane = np.full((8, 8), int('K' in castling_state))
+    Q_castling_plane = np.full((8, 8), int('Q' in castling_state))
+    k_castling_plane = np.full((8, 8), int('k' in castling_state))
+    q_castling_plane = np.full((8, 8), int('q' in castling_state))
+
+    auxilary_plane = np.array([K_castling_plane, Q_castling_plane, k_castling_plane,
+                               q_castling_plane, fifty_move_plane, en_passant_plane])
+
+    assert auxilary_plane.shape == (6, 8, 8)
+    return auxilary_plane
+
+
+def get_feature_plane(board_fen):
+
+    history_plane = get_history_plane(board_fen)
+    auxilary_plane = get_auxilary_plane(board_fen)
+    feature_plane = np.vstack((history_plane, auxilary_plane))
+    assert feature_plane.shape == (18, 8, 8)
+    return feature_plane
+
+def first_person_view_fen(board_fen, flip):
+
+    if not flip:
+        return board_fen
+
+    board_fen_list = board_fen.split(' ')
+    rows = board_fen_list[0].split('/')
+
+    rows = [reduce(lambda x, y : x + y, list(map(lambda ch: ch.lower() if ch.isupper() else ch.upper(), row))) for row in rows]
+    board_fen_list[0] = '/'.join(reversed(rows))
+
+    board_fen_list[1] = 'w' if board_fen_list[1] == 'b' else 'b'
+
+    ret_board_fen = ' '.join(board_fen_list)
+    return ret_board_fen
+
+def convert_board_to_plane(board_fen):
+    return get_feature_plane(first_person_view_fen(board_fen, is_black_turn(board_fen)))
 
 # --------------------------------------------
 # Train
 # --------------------------------------------
 
+
 class Batchgen(object):
-    """generate batches
+    '''generate batches
     data is a list of the class Data
     batch_size is int type
-    """
+    '''
     def __init__(self, data, batch_size, shuffle=True):
         self.batch_size = batch_size
         self.data = data
@@ -107,7 +227,28 @@ class Batchgen(object):
             indices = list(range(len(data)))
             random.shuffle(indices)
             data = [data[i] for i in indices]
-        self.batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+        self.batches = [self.standardize(data[i:i + batch_size]) for i in range(0, len(data), batch_size)]
+
+    def standardize(self, data):
+        '''
+        https://www.xqbase.com/protocol/pgnfen2.htm
+        :param data:
+        :return:
+        '''
+        feature_plane_list = []
+        policy_list = []
+        value_list = []
+        for board_fen, policy, value in data:
+            feature_plane = convert_board_to_plane(board_fen)
+            round_time = int(board_fen.split(' ')[5])
+            value_weight = min(5, round_time) / 5
+            learning_value = value * value_weight + evaluate_board(board_fen) * (1 - value_weight)
+
+            feature_plane_list.append(feature_plane)
+            policy_list.append(policy)
+            value_list.append(learning_value)
+
+        return np.array(feature_plane_list), np.array(policy_list), np.array(value_list)
 
     def __len__(self):
         return len(self.data)
