@@ -95,12 +95,14 @@ class ChessBoard(object):
 PIECES_ORDER = 'KQRBNPkqrbnp'
 PIECES_INDEX = {PIECES_ORDER[i] : i for i in range(12)}
 EXTEND_SPACE = {
+'1' : '1',
 '2' : '11',
 '3' : '111',
 '4' : '1111',
 '5' : '11111',
 '6' : '111111',
 '7' : '1111111',
+'8' : '11111111',
 '/' : ''
 }
 
@@ -118,8 +120,8 @@ def evaluate_board(fen):
             current_value += chess_piece_value[ch]
             total_value += chess_piece_value[ch]
         else:
-            current_value -= chess_piece_value[ch]
-            total_value += chess_piece_value[ch]
+            current_value -= chess_piece_value[ch.upper()]
+            total_value += chess_piece_value[ch.upper()]
 
     value_rate = current_value / total_value
     if is_black_turn(fen):
@@ -185,7 +187,7 @@ def get_feature_plane(board_fen):
 
     history_plane = get_history_plane(board_fen)
     auxilary_plane = get_auxilary_plane(board_fen)
-    feature_plane = np.vstack(history_plane, auxilary_plane)
+    feature_plane = np.vstack((history_plane, auxilary_plane))
     assert feature_plane.shape == (18, 8, 8)
     return feature_plane
 
@@ -196,7 +198,8 @@ def first_person_view_fen(board_fen, flip):
 
     board_fen_list = board_fen.split(' ')
     rows = board_fen_list[0].split('/')
-    rows = [map(lambda ch: ch.lower() if ch.isupper() else ch.upper(), row) for row in rows]
+
+    rows = [reduce(lambda x, y : x + y, list(map(lambda ch: ch.lower() if ch.isupper() else ch.upper(), row))) for row in rows]
     board_fen_list[0] = '/'.join(reversed(rows))
 
     board_fen_list[1] = 'w' if board_fen_list[1] == 'b' else 'b'

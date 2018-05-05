@@ -32,7 +32,7 @@ class ResourceConfig(object):
 class ModelConfig(object):
     """Model Configuration"""
     cnn_filter_num = 256
-    res_later_num = 7
+    res_layer_num = 7
     cnn_first_filter_num = 5
     cnn_filter_size = 3
     l2_regularizer = 1e-4
@@ -43,11 +43,11 @@ class ModelConfig(object):
 
 class TrainerConfig(object):
     """Training Configuration"""
-    batch_size = 4
+    batch_size = 320
     learning_rate = 0.02
     l2_reg = 1e-4
     epoches = 100
-
+    loss_weights = [1.25, 1.0]
     save_interval = 20
     test_interval = 5
     # TODO add your training super params.

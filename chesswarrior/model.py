@@ -7,7 +7,7 @@ import keras
 from .config import Config
 
 from keras.models import Model
-from keras.layers import Input,Dense, Dropout, Flatten, Activation, Reshape, merge
+from keras.layers import Input,Dense, Dropout, Flatten, Activation, Reshape, Add
 from keras.layers.convolutional import Conv2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import MaxPool2D, AveragePooling2D
@@ -41,8 +41,8 @@ class ChessModel(object):
                         kernel_regularizer=l2(model_config.l2_regularizer),activation="relu")(block1)
         block2 = BatchNormalization(axis=1)(block2)
 
-        output_data = merge([input_data, block2], mode="sum")
-        output_data = Activation("relu")
+        output_data = Add()([input_data, block2])
+        output_data = Activation("relu")(output_data)
         return output_data
 
 
@@ -54,7 +54,7 @@ class ChessModel(object):
                         padding="same", data_format="channels_first", activation="relu")(input_data)
         block1 = BatchNormalization(axis=1)(block1)
 
-        for _ in range(model_config):
+        for _ in range(model_config.res_layer_num):
             block1 = self.add_rsnet(block1)
 
         block2_policy = Conv2D(filters=2, kernel_size=1, data_format="channels_first",
@@ -77,3 +77,7 @@ class ChessModel(object):
                           activation="tanh")(fc_value)
 
         self.model = Model(inputs=input_data, outputs=[policy_out, value_out])
+
+'''if __name__ == '__main__':
+    chess_model = ChessModel()
+    chess_model.build()'''
