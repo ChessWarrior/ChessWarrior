@@ -46,9 +46,9 @@ class TrainerConfig(object):
     batch_size = 320
     learning_rate = 0.02
     l2_reg = 1e-4
-    epoches = 100
+    epoches = 20
     loss_weights = [1.25, 1.0]
-    save_interval = 20
+    save_interval = 10
     test_interval = 5
     # TODO add your training super params.
     pass

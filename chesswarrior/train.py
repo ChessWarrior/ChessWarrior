@@ -63,9 +63,9 @@ class Trainer(object):
                 pass
                 #self.testing()
             elif epoch == self.config.training.save_interval:
-                self.model.save(self.config.resources.best_model_dir+"best_model.h5")
-                with open(self.config.resources.best_model_dir+"epoch.txt", "w") as file:
-                    file.write(epoch)
+                self.model.save(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
+                with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "w") as file:
+                    file.write(str(epoch))
             else:
                 continue
 
