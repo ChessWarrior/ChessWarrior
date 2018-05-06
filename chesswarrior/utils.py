@@ -248,7 +248,8 @@ class Batchgen(object):
             policy_list.append(policy)
             value_list.append(learning_value)
 
-        return np.array(feature_plane_list), np.array(policy_list), np.array(value_list)
+        return np.array(feature_plane_list, dtype=np.float32), \
+               np.array(policy_list, dtype=np.float32), np.array(value_list, dtype=np.float32)
 
     def __len__(self):
         return len(self.data)

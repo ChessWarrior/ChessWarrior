@@ -7,14 +7,14 @@ from queue import Queue
 
 import keras
 from keras.models import load_model
+from keras.callbacks import TensorBoard
+from keras.utils.np_utils import to_categorical
 
 from .model import ChessModel
 from .config import Config
 from .utils import Batchgen
 
-
 logger = logging.getLogger(__name__)
-
 
 class Trainer(object):
     def __init__(self, config: Config):
@@ -33,8 +33,9 @@ class Trainer(object):
                 self.ChessModel = ChessModel(config=self.config)
                 self.ChessModel.build()
                 self.model = self.ChessModel.model
-                self.model.compile(optimizer=keras.optimizers.adagrad(), loss=['categorical_crossentropy', 'mean_squared_error'],
-                                   loss_weights=self.config.training.loss_weights, metrics=['accuracy', 'mse'])
+                self.model.compile(optimizer=keras.optimizers.adam(),
+                                   loss=['categorical_crossentropy', 'mean_squared_error'],
+                                   loss_weights=self.config.training.loss_weights)
 
 
         self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
@@ -55,9 +56,10 @@ class Trainer(object):
                 with open(self.config.resources.sl_processed_data_dir+"\\"+data_file, "r", encoding='utf-8') as file:
                     data = json.load(file)
                     batches = Batchgen(data, self.config.training.batch_size)
-                    for batch_data_i in batches:
-                        feature_plane_array, policy_array, value_array = batch_data_i
-                        self.model.fit(feature_plane_array, [policy_array, value_array], verbose=1, validation_split=0.05, shuffle=True)
+                    for feature_plane_array, policy_array, value_array in batches:
+                        self.model.fit(feature_plane_array, [policy_array, value_array],
+                                       validation_split=0.1, shuffle=True, verbose=2,
+                                       callbacks=[TensorBoard(log_dir="./tmp/log")])
 
             if epoch == self.config.training.test_interval:
                 pass
