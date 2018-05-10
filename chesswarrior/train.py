@@ -29,6 +29,7 @@ class Trainer(object):
         if not self.model:
             try:
                 self.model = load_model(self.config.resources.best_model_dir+"best_model.h5") #h5 file (model and weights)
+                logger.info('load last trained best model.')
             except OSError:
                 self.ChessModel = ChessModel(config=self.config)
                 self.ChessModel.build()
@@ -36,6 +37,7 @@ class Trainer(object):
                 self.model.compile(optimizer=keras.optimizers.adam(),
                                    loss=['categorical_crossentropy', 'mean_squared_error'],
                                    loss_weights=self.config.training.loss_weights)
+                logger.info('A new model is born.')
 
 
         self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
@@ -57,9 +59,18 @@ class Trainer(object):
                     data = json.load(file)
                     batches = Batchgen(data, self.config.training.batch_size)
                     for feature_plane_array, policy_array, value_array in batches:
-                        self.model.fit(feature_plane_array, [policy_array, value_array],
+                        history_callback = self.model.fit(feature_plane_array, [policy_array, value_array],
                                        validation_split=0.1, shuffle=True, verbose=2,
                                        callbacks=[TensorBoard(log_dir="./tmp/log")])
+                        loss = history_callback.history["loss"][0]
+                        policy_out_loss =  history_callback.history["policy_out_loss"][0]
+                        value_out_loss = history_callback.history["value_out_loss"][0]
+                        val_loss =  history_callback.history["val_loss"][0]
+                        val_policy_out_loss = history_callback.history["val_policy_out_loss"][0]
+                        val_value_out_loss = history_callback.history["val_value_out_loss"][0]
+                        logger.debug("loss: %f - policy_out_loss: %f - value_out_loss: %f - val_loss: %f - val_policy_out_loss: %f - val_value_out_loss: %f " % 
+                        (loss, policy_out_loss, value_out_loss, val_loss, val_policy_out_loss, val_value_out_loss))
+
 
             if epoch == self.config.training.test_interval:
                 pass

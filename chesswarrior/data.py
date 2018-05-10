@@ -77,6 +77,7 @@ class DataReader(object):
                 try:
                     json.dump(self.data_buffer, file)
                     self.data_buffer = []
+                    logger.info("Clear buffer successfully!")
                 except IOError:
                     logger.fatal("Dump json file failed!")
                     raise
