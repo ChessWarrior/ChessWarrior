@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class DataReader(object):
-    """ read pgn files and transform them into json 
-    
+    """ read pgn files and transform them into json
+
     """
     def __init__(self, config: Config):
         self.config = config.resources
@@ -47,12 +47,12 @@ class DataReader(object):
         while not file_queue.empty():
             filename = file_queue.get()
             file_counter = 0
-            logger.info(f"read {filename}")
-            with open(self.pgn_filepath+"\\"+filename, "r") as pgn_file:
+            logger.info("read %s" % filename)
+            with open(self.pgn_filepath+"/"+filename, "r") as pgn_file:
                 # TODO your read code here
                 name = os.path.splitext(filename)
                 offsets = list(chess.pgn.scan_offsets(pgn_file))
-                logger.info(f"{len(offsets)} games in {filename}")
+                logger.info("%d games in %s" % (len(offsets),filename ))
                 game_counter = 0
                 for offset in offsets:
                     game_counter+=1
@@ -62,7 +62,7 @@ class DataReader(object):
                     # Note: about 1000kb~5000kb save as one json file to reduce memory pressure
                     while n_counter >= self.json_size: #n_counter == len(self.data_buffer)
                         file_counter+=1
-                        with open(self.json_filepath + "\\" + name[0] + "_" + str(file_counter) + ".json", "w") as file:
+                        with open(self.json_filepath + "/" + name[0] + "_" + str(file_counter) + ".json", "w") as file:
                             n_counter = n_counter - self.json_size
                             try:
                                 json.dump(self.data_buffer[0:self.json_size], file) #dump 1024 steps(about 10MB)
@@ -71,9 +71,9 @@ class DataReader(object):
                                 logger.fatal("Dump json file failed!")
                                 raise
                     if game_counter % 200 == 0:
-                        logger.info(f"processed {game_counter} games")
+                        logger.info("processed %d games" % game_counter)
         if len(self.data_buffer) != 0:  #dump last steps
-            with open(self.json_filepath + "\\" + "last_steps.json", "w") as file:
+            with open(self.json_filepath + "/" + "last_steps.json", "w") as file:
                 try:
                     json.dump(self.data_buffer, file)
                     self.data_buffer = []
@@ -113,7 +113,7 @@ class DataReader(object):
             board.push_uci(next_move)
             data_len += 1
         return data_len
-    
+
     def get_result(self, result):
         """
         return int: white_win: 1; black_win: -1; draw: 0;

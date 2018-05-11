@@ -12,7 +12,7 @@ class ResourceConfig(object):
     cur_dir = os.path.abspath(__file__)
 
     d = os.path.dirname
-    base_dir = d(d(cur_dir))
+    base_dir = "/Users/tmp"
 
     _base_data_dir = os.path.join(base_dir, "data")
 
@@ -43,12 +43,12 @@ class ModelConfig(object):
 
 class TrainerConfig(object):
     """Training Configuration"""
-    batch_size = 320
+    batch_size = 512
     learning_rate = 0.02
     l2_reg = 1e-4
-    epoches = 300
+    epoches = 30
     loss_weights = [1.25, 1.0]
-    save_interval = 10
+    save_interval = 1
     test_interval = 5
     # TODO add your training super params.
     pass

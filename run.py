@@ -10,10 +10,13 @@ from chesswarrior.train import Trainer
 from chesswarrior.play import Player
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console = logging.StreamHandler()
 console.setFormatter(fmt)
+handler = logging.FileHandler('log_data.txt')
+handler.setFormatter(fmt)
+logger.addHandler(handler)
 logger.addHandler(console)
 
 config = Config()

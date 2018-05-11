@@ -39,8 +39,7 @@ class ChessModel(object):
 
         block2 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_filter_size,
                         padding="same", data_format="channels_first", use_bias=False,
-                        kernel_initializer="RandomUniform", kernel_regularizer=l2(model_config.l2_regularizer),
-                        activation="relu")(block1)
+                        kernel_initializer="RandomUniform", kernel_regularizer=l2(model_config.l2_regularizer))(block1)
         block2 = BatchNormalization(axis=1)(block2)
 
         output_data = Add()([input_data, block2])
