@@ -32,13 +32,13 @@ class ChessModel(object):
         """
         model_config = self.config.model
         block1 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_filter_size,
-                        padding="same", data_format="channels_first", use_bias=False,
+                        padding="same", data_format="channels_first",
                         kernel_initializer="RandomUniform", kernel_regularizer=l2(model_config.l2_regularizer),
                         activation="relu")(input_data)
         block1 = BatchNormalization(axis=1)(block1)
 
         block2 = Conv2D(filters=model_config.cnn_filter_num, kernel_size=model_config.cnn_filter_size,
-                        padding="same", data_format="channels_first", use_bias=False,
+                        padding="same", data_format="channels_first",
                         kernel_initializer="RandomUniform", kernel_regularizer=l2(model_config.l2_regularizer))(block1)
         block2 = BatchNormalization(axis=1)(block2)
 
@@ -61,7 +61,7 @@ class ChessModel(object):
 
         block2_policy = Conv2D(filters=2, kernel_size=1, data_format="channels_first",
                                kernel_initializer="RandomUniform",
-                               use_bias=False, kernel_regularizer=l2(model_config.l2_regularizer),
+                               kernel_regularizer=l2(model_config.l2_regularizer),
                                activation="relu")(block1)
         block2_policy = BatchNormalization(axis=1)(block2_policy)
         block2_policy = Flatten()(block2_policy)
@@ -69,14 +69,13 @@ class ChessModel(object):
 
         block2_value = Conv2D(filters=4, kernel_size=1, data_format="channels_first",
                               kernel_initializer="RandomUniform",
-                               use_bias=False, kernel_regularizer=l2(model_config.l2_regularizer),
+                               kernel_regularizer=l2(model_config.l2_regularizer),
                                activation="relu")(block1)
         block2_value = BatchNormalization(axis=1)(block2_value)
         block2_value = Flatten()(block2_value)
 
         fc_value = Dense(units=model_config.value_fc_size, kernel_regularizer=l2(model_config.l2_regularizer),
                          activation="relu", kernel_initializer="RandomUniform")(block2_value)
-        fc_value = Dropout(rate=model_config.drop_out_rate)(fc_value)
         value_out = Dense(units=1, kernel_regularizer=l2(model_config.l2_regularizer),
                           kernel_initializer="RandomUniform", activation="tanh", name="value_out")(fc_value)
 

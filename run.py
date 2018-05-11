@@ -26,7 +26,7 @@ parser.add_argument('--no-cuda', action='store_false', help="Running without cud
 parser.add_argument('-epoch', type=int, help="training epoches",default=config.training.epoches)
 parser.add_argument('-lr', type=float, help="learning rate",default=config.training.learning_rate)
 parser.add_argument('-batch_size', type=int, help="batch size",default=config.training.batch_size)
-parser.add_argument('-l2_reg', type=float, help="l2_regulation",default=config.training.l2_reg)
+parser.add_argument('-l2_reg', type=float, help="l2_regulation",default=config.model.l2_regularizer)
 args = parser.parse_args()
 
 

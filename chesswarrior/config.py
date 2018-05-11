@@ -12,7 +12,7 @@ class ResourceConfig(object):
     cur_dir = os.path.abspath(__file__)
 
     d = os.path.dirname
-    base_dir = "/Users/tmp"
+    base_dir = d(d(cur_dir))
 
     _base_data_dir = os.path.join(base_dir, "data")
 
@@ -32,10 +32,10 @@ class ResourceConfig(object):
 class ModelConfig(object):
     """Model Configuration"""
     cnn_filter_num = 256
-    res_layer_num = 7
+    res_layer_num = 19
     cnn_first_filter_num = 5
     cnn_filter_size = 3
-    l2_regularizer = 1e-4
+    l2_regularizer = 1e-5
     value_fc_size = 256
     drop_out_rate = 0.5
     # TODO add your keras structure
@@ -45,7 +45,6 @@ class TrainerConfig(object):
     """Training Configuration"""
     batch_size = 512
     learning_rate = 0.02
-    l2_reg = 1e-4
     epoches = 30
     loss_weights = [1.25, 1.0]
     save_interval = 1

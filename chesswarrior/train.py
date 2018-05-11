@@ -28,7 +28,8 @@ class Trainer(object):
     def start(self):
         if not self.model:
             try:
-                self.model = load_model(self.config.resources.best_model_dir+"best_model.h5") #h5 file (model and weights)
+                # h5 file (model and weights)
+                self.model = load_model(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
                 logger.info('load last trained best model.')
             except OSError:
                 self.ChessModel = ChessModel(config=self.config)
@@ -45,7 +46,7 @@ class Trainer(object):
             logger.fatal("No Porcessed data!")
             raise RuntimeError("No processed data!")
 
-        with open(self.config.resources.best_model_dir+"/epoch.txt", "r") as file:
+        with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "r") as file:
             self.epoch0 = int(file.read())
         self.training()
 
@@ -55,7 +56,7 @@ class Trainer(object):
             logger.info('epoch %d start!' % epoch)
 
             for data_file in self.data_files:
-                with open(self.config.resources.sl_processed_data_dir+"/"+data_file, "r", encoding='utf-8') as file:
+                with open(os.path.join(self.config.resources.sl_processed_data_dir, data_file), "r", encoding='utf-8') as file:
                     data = json.load(file)
                     batches = Batchgen(data, self.config.training.batch_size)
                     for feature_plane_array, policy_array, value_array in batches:
