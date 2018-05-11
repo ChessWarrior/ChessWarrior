@@ -45,7 +45,7 @@ class Trainer(object):
             logger.fatal("No Porcessed data!")
             raise RuntimeError("No processed data!")
 
-        with open(self.config.resources.best_model_dir+"\\epoch.txt", "r") as file:
+        with open(self.config.resources.best_model_dir+"/epoch.txt", "r") as file:
             self.epoch0 = int(file.read())
         self.training()
 
@@ -55,13 +55,12 @@ class Trainer(object):
             logger.info('epoch %d start!' % epoch)
 
             for data_file in self.data_files:
-                with open(self.config.resources.sl_processed_data_dir+"\\"+data_file, "r", encoding='utf-8') as file:
+                with open(self.config.resources.sl_processed_data_dir+"/"+data_file, "r", encoding='utf-8') as file:
                     data = json.load(file)
                     batches = Batchgen(data, self.config.training.batch_size)
                     for feature_plane_array, policy_array, value_array in batches:
                         history_callback = self.model.fit(feature_plane_array, [policy_array, value_array],
-                                       validation_split=0.1, shuffle=True, verbose=2,
-                                       callbacks=[TensorBoard(log_dir="./tmp/log")])
+                                       validation_split=0.1, shuffle=True, verbose=2)
                         loss = history_callback.history["loss"][0]
                         policy_out_loss =  history_callback.history["policy_out_loss"][0]
                         value_out_loss = history_callback.history["value_out_loss"][0]
@@ -71,16 +70,10 @@ class Trainer(object):
                         logger.debug("loss: %f - policy_out_loss: %f - value_out_loss: %f - val_loss: %f - val_policy_out_loss: %f - val_value_out_loss: %f " % 
                         (loss, policy_out_loss, value_out_loss, val_loss, val_policy_out_loss, val_value_out_loss))
 
+            self.model.save(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
+            with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "w") as file:
+                file.write(str(epoch))
 
-            if epoch == self.config.training.test_interval:
-                pass
-                #self.testing()
-            elif epoch == self.config.training.save_interval:
-                self.model.save(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
-                with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "w") as file:
-                    file.write(str(epoch))
-            else:
-                continue
 
     def f1_score(self):
         # Not urgent
