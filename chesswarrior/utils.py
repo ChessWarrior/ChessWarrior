@@ -1,11 +1,11 @@
 """ChessWarrior utilities"""
 
-
-import chess
 import logging
 import random
 import numpy as np
 from functools import reduce
+
+import chess
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ def is_black_turn(fen):
     return fen.split(' ')[1] == 'b'
 
 def evaluate_board(fen):
-    chess_piece_value = {'Q' : 14, 'R' : 5, 'B' : 3, 'K' : 3, 'N' : 3, 'P' : 1}
+    chess_piece_value = {'Q' : 14, 'R' : 5, 'B' : 3.25, 'K' : 3, 'N' : 3, 'P' : 1}
     current_value = 0.0
     total_value = 0.0
     for ch in fen.split(' ')[0]:

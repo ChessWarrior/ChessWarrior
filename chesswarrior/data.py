@@ -4,6 +4,7 @@ import os
 import logging
 import json
 from queue import Queue
+
 import chess.pgn
 import chess
 
