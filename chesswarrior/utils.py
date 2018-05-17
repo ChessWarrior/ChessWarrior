@@ -3,6 +3,7 @@
 import logging
 import random
 import numpy as np
+from .config import Config
 from functools import reduce
 
 import chess
@@ -207,6 +208,14 @@ def first_person_view_fen(board_fen, flip):
     ret_board_fen = ' '.join(board_fen_list)
     return ret_board_fen
 
+def first_person_view_policy(policy, flip):
+
+    if not flip:
+        return policy
+
+    return np.array([policy[pos] for pos in Config.get_flipped_uci_pos])
+
+
 def convert_board_to_plane(board_fen):
     return get_feature_plane(first_person_view_fen(board_fen, is_black_turn(board_fen)))
 
@@ -245,7 +254,7 @@ class Batchgen(object):
             learning_value = value * value_weight + evaluate_board(board_fen) * (1 - value_weight)
 
             feature_plane_list.append(feature_plane)
-            policy_list.append(policy)
+            policy_list.append(first_person_view_policy(policy, is_black_turn(board_fen)))
             value_list.append(learning_value)
 
         return np.array(feature_plane_list, dtype=np.float32), \
