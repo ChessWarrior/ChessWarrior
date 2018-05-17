@@ -65,7 +65,7 @@ class ChessModel(object):
                                activation="relu")(block1)
         block2_policy = BatchNormalization(axis=1)(block2_policy)
         block2_policy = Flatten()(block2_policy)
-        policy_out = Dense(units=self.config.label_len, name="policy_out", activation="softmax")(block2_policy)
+        policy_out = Dense(units=1968, name="policy_out", activation="softmax")(block2_policy)
 
         block2_value = Conv2D(filters=4, kernel_size=1, data_format="channels_first",
                               kernel_initializer="RandomUniform",
