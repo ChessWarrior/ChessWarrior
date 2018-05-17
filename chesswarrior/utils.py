@@ -3,7 +3,6 @@
 import logging
 import random
 import numpy as np
-from .config import Config
 from functools import reduce
 
 import chess
@@ -107,6 +106,13 @@ EXTEND_SPACE = {
 '/' : ''
 }
 
+labels = get_all_possible_moves()
+label_len = len(labels)
+flipped_uci_labels = list("".join([str(9 - int(ch)) if ch.isdigit() else ch for ch in chess_move]) \
+                          for chess_move in labels)
+get_flipped_uci_pos = [flipped_uci_labels.index(chess_move) for chess_move in labels]
+
+
 def is_black_turn(fen):
     return fen.split(' ')[1] == 'b'
 
@@ -205,6 +211,8 @@ def first_person_view_fen(board_fen, flip):
 
     board_fen_list[1] = 'w' if board_fen_list[1] == 'b' else 'b'
 
+    board_fen_list[2] = "".join(sorted("".join(ch.lower() if ch.isupper() else ch.upper() for ch in board_fen_list[2])))
+
     ret_board_fen = ' '.join(board_fen_list)
     return ret_board_fen
 
@@ -213,7 +221,7 @@ def first_person_view_policy(policy, flip):
     if not flip:
         return policy
 
-    return np.array([policy[pos] for pos in Config.get_flipped_uci_pos])
+    return np.array([policy[pos] for pos in get_flipped_uci_pos])
 
 
 def convert_board_to_plane(board_fen):
