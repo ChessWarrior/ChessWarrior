@@ -1,5 +1,5 @@
 tensorflow-gpu
-keras
+keras==2.1.5
 h5py
 numpy
 python-chess

@@ -47,7 +47,7 @@ class Trainer(object):
             raise RuntimeError("No processed data!")
 
         with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "r") as file:
-            self.epoch0 = int(file.read())
+            self.epoch0 = int(file.read()) + 1
         self.training()
 
     def training(self):

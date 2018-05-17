@@ -11,7 +11,7 @@ class ResourceConfig(object):
     cur_dir = os.path.abspath(__file__)
 
     d = os.path.dirname
-    base_dir = d(d(cur_dir))
+    base_dir = '/Users/'
 
     _base_data_dir = os.path.join(base_dir, "data")
 
@@ -42,9 +42,9 @@ class ModelConfig(object):
 
 class TrainerConfig(object):
     """Training Configuration"""
-    batch_size = 512
-    learning_rate = 0.02
-    epoches = 30
+    batch_size = 1024
+    learning_rate = 0.001
+    epoches = 100
     loss_weights = [1.25, 1.0]
     save_interval = 1
     test_interval = 5

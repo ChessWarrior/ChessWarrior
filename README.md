@@ -15,13 +15,13 @@ There are three modes: data train and play
 
 # Requirements
 environment windows
-python 3.6 
+python 3.x
 - tensorflow-gpu
-- keras
+- keras==2.1.5
 - h5py
 - numpy
 - python-chess
 
 just 
-> pip install requirements.txt
+> pip install -r requirements.txt
 
