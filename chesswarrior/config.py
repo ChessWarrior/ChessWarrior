@@ -11,7 +11,7 @@ class ResourceConfig(object):
     cur_dir = os.path.abspath(__file__)
 
     d = os.path.dirname
-    base_dir = '/Users/'
+    base_dir = '/Users/tmp/'
 
     _base_data_dir = os.path.join(base_dir, "data")
 
@@ -31,7 +31,7 @@ class ResourceConfig(object):
 class ModelConfig(object):
     """Model Configuration"""
     cnn_filter_num = 256
-    res_layer_num = 19
+    res_layer_num = 39
     cnn_first_filter_num = 5
     cnn_filter_size = 3
     l2_regularizer = 1e-5

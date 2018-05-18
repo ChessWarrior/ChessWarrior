@@ -2,6 +2,7 @@
 
 import logging
 import os
+import matplotlib.pyplot as plt
 
 import numpy as np
 import keras
@@ -26,6 +27,8 @@ class Player(object):
         self.model = None
         self.board = None
         self.move_hash = {}
+        self.policies = []
+        self.cnt = []
 
     def start(self, choise):
         try:
@@ -84,6 +87,8 @@ class Player(object):
             logger.info("Your move: %s" % opponent_move)
             
             self.board.push(convert_move) # other move.  update board
+
+        
         
     
     def play(self):
@@ -97,7 +102,7 @@ class Player(object):
         legal_moves = self.board.legal_moves
         
         '''
-        return mcts()
+        return alpha_beta_search()
         '''
 
         candidates = {}  # {move : policy}
@@ -107,13 +112,21 @@ class Player(object):
             p = policy[0][k]
             candidates[move] = p
         
-        return sorted(candidates.items(), key=lambda x:x[1], reverse=True)[0][0] #move
+        x =  sorted(candidates.items(), key=lambda x:x[1], reverse=True)
+        
+        print("policy: %f" % x[0][1])
+        self.policies.append(x[0][1])
+
+        plt.plot(range(len(self.policies)), self.policies)
+        plt.show()
+
+        return x[0][0]
 
     def self_play(self):
         pass
 
-    def mcts(self):
-        #TODO: your mcts code here
+    def alpha_beta_search(self):
+        #TODO: your a-b search code here
         pass
 
 
@@ -125,3 +138,13 @@ def convert_black_uci(move):
         else:
             new_move.append(s)
     return ''.join(new_move)
+
+def count_piece(board_fen):
+    '''
+    count many pieces left on the board
+    '''
+    cnt = 0
+    for pos in board_fen:
+        if pos.isalpha():
+            cnt += 1
+    return cnt
