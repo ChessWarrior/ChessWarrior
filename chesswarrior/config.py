@@ -11,7 +11,7 @@ class ResourceConfig(object):
     cur_dir = os.path.abspath(__file__)
 
     d = os.path.dirname
-    base_dir = '/Users/tmp/'
+    base_dir = d(d(cur_dir))
 
     _base_data_dir = os.path.join(base_dir, "data")
 

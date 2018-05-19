@@ -3,6 +3,8 @@
 import logging
 import os
 import matplotlib.pyplot as plt
+import time
+import multiprocessing
 
 import numpy as np
 import keras
@@ -26,9 +28,13 @@ class Player(object):
         self.model_path = self.config.resources.best_model_dir
         self.model = None
         self.board = None
+        self.choise = None
+        self.search_depth = 2
+        self.move_value = {}
         self.move_hash = {}
         self.policies = []
         self.cnt = []
+        self.INF = 0x3f3f3f3f
 
     def start(self, choise):
         try:
@@ -39,7 +45,7 @@ class Player(object):
             return
 
         self.board = chess.Board()
-
+        self.choise = choise
         all_moves = get_all_possible_moves()
         self.move_hash = {move: i for (i, move) in enumerate(all_moves)}
 
@@ -58,7 +64,10 @@ class Player(object):
             self.board.push(convert_move) # other move.  update board
         
         while not self.board.is_game_over():
+            start = time.time()
             my_move = self.play()   #get ai move
+            end = time.time()
+            print("time: %.2f" % (end - start))
             #my_move = convert_black_uci(my_move)
             convert_move = self.board.parse_uci(my_move)
             self.board.push(convert_move) # ai move. update board
@@ -88,8 +97,6 @@ class Player(object):
             
             self.board.push(convert_move) # other move.  update board
 
-        
-        
     
     def play(self):
         """
@@ -97,7 +104,9 @@ class Player(object):
         """
         feature_plane = convert_board_to_plane(self.board.fen())
         feature_plane = feature_plane[np.newaxis, :]
-        [policy, value] = self.model.predict(feature_plane, batch_size=1)
+        policy, value = self.model.predict(feature_plane, batch_size=1)
+        print("value: %.2f" % value[0][0])
+        print("policy: %.2f" % policy[0][0])
         #Attention policy is like [[0,0,1,......]]
         legal_moves = self.board.legal_moves
         
@@ -105,29 +114,53 @@ class Player(object):
         return alpha_beta_search()
         '''
 
+        self.alpha_beta_search(self.board, self.search_depth, -self.INF, self.INF)
         candidates = {}  # {move : policy}
         for move in legal_moves:
+            v = self.move_value[move]
             move = move.uci()
             k = self.move_hash[move]
             p = policy[0][k]
-            candidates[move] = p
+            candidates[move] = p*(1+v)
         
         x =  sorted(candidates.items(), key=lambda x:x[1], reverse=True)
         
-        print("policy: %f" % x[0][1])
+        print("evaluation: %f" % x[0][1])
         self.policies.append(x[0][1])
 
-        plt.plot(range(len(self.policies)), self.policies)
-        plt.show()
+        #plt.plot(range(len(self.policies)), self.policies)
+        #plt.show()
 
         return x[0][0]
 
     def self_play(self):
         pass
 
-    def alpha_beta_search(self):
-        #TODO: your a-b search code here
-        pass
+    def alpha_beta_search(self, board, depth, alpha, beta):
+        if depth == 0:
+            return self.valuation(board)
+        if self.search_depth > depth:
+            board = chess.Board(first_person_view_fen(board.fen(),1))
+        for move in board.legal_moves:
+            board.push(move)
+            value = -self.alpha_beta_search(board, depth-1, -beta, -alpha)
+            board.pop()
+            if self.search_depth == depth:
+                self.move_value[move] = value
+            if value > alpha:
+                alpha = value
+            if alpha >= beta:
+                break
+        return alpha
+                
+
+        
+    
+    def valuation(self, board):
+        feature_plane = convert_board_to_plane(board.fen())
+        feature_plane = feature_plane[np.newaxis, :]
+        _, value = self.model.predict(feature_plane, batch_size=1)
+        return value[0][0]
 
 
 def convert_black_uci(move):
