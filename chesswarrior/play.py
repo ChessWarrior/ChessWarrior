@@ -29,7 +29,7 @@ class Player(object):
         self.model = None
         self.board = None
         self.choise = None
-        self.search_depth = 2
+        self.search_depth = 5
         self.move_value = {}
         self.move_hash = {}
         self.policies = []
@@ -117,11 +117,12 @@ class Player(object):
         self.alpha_beta_search(self.board, self.search_depth, -self.INF, self.INF)
         candidates = {}  # {move : policy}
         for move in legal_moves:
-            v = self.move_value[move]
-            move = move.uci()
-            k = self.move_hash[move]
-            p = policy[0][k]
-            candidates[move] = p*(1+v)
+            if move in self.move_value:
+                v = self.move_value[move]
+                move = move.uci()
+                k = self.move_hash[move]
+                p = policy[0][k]
+                candidates[move] = p*(1+v)
         
         x =  sorted(candidates.items(), key=lambda x:x[1], reverse=True)
         
@@ -141,7 +142,28 @@ class Player(object):
             return self.valuation(board)
         if self.search_depth > depth:
             board = chess.Board(first_person_view_fen(board.fen(),1))
+
+        legal_moves_list = []
+        feature_plane = convert_board_to_plane(board.fen())
+        feature_plane = feature_plane[np.newaxis, :]
+        policy_arr, value = self.model.predict(feature_plane, batch_size=1)
+        policy_arr = policy_arr[0]
+
+        policy_list = []
         for move in board.legal_moves:
+            board.push(move)
+            legal_moves_list.append(move)
+            policy_list.append(policy_arr[self.move_hash[move.uci()]])
+            board.pop()
+
+        move_list = []
+        policy_sort = sorted(policy_list, reverse=True)
+        for i in range(min(3, len(legal_moves_list))):
+            move = legal_moves_list[policy_list.index(policy_sort[i])]
+            move_list.append(move)
+
+
+        for move in move_list:
             board.push(move)
             value = -self.alpha_beta_search(board, depth-1, -beta, -alpha)
             board.pop()
@@ -152,9 +174,6 @@ class Player(object):
             if alpha >= beta:
                 break
         return alpha
-                
-
-        
     
     def valuation(self, board):
         feature_plane = convert_board_to_plane(board.fen())
