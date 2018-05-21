@@ -13,7 +13,7 @@ import chess
 
 from .model import ChessModel
 from .config import Config
-from .utils import convert_board_to_plane,  get_all_possible_moves, first_person_view_fen
+from .utils import convert_board_to_plane,  get_all_possible_moves, first_person_view_fen, evaluate_board
 
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ class Player(object):
 
         move_list = []
         policy_sort = sorted(policy_list, reverse=True)
-        for i in range(min(3, len(legal_moves_list))):
+        for i in range(min(4, len(legal_moves_list))):
             move = legal_moves_list[policy_list.index(policy_sort[i])]
             move_list.append(move)
 
@@ -176,10 +176,11 @@ class Player(object):
         return alpha
     
     def valuation(self, board):
+        weight = 0.2
         feature_plane = convert_board_to_plane(board.fen())
         feature_plane = feature_plane[np.newaxis, :]
         _, value = self.model.predict(feature_plane, batch_size=1)
-        return value[0][0]
+        return value[0][0] * weight + evaluate_board(board.fen()) * (1 - weight)
 
 
 def convert_black_uci(move):
