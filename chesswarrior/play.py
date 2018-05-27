@@ -18,7 +18,6 @@ from .utils import convert_board_to_plane,  get_all_possible_moves, first_person
 
 logger = logging.getLogger(__name__)
 
-
 class Player(object):
     """Using the best model to play"""
 
