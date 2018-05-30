@@ -112,7 +112,6 @@ flipped_uci_labels = list("".join([str(9 - int(ch)) if ch.isdigit() else ch for 
                           for chess_move in labels)
 get_flipped_uci_pos = [flipped_uci_labels.index(chess_move) for chess_move in labels]
 
-
 def is_black_turn(fen):
     return fen.split(' ')[1] == 'b'
 
@@ -172,8 +171,7 @@ def get_auxilary_plane(board_fen):
     if en_passant_state != '-':
         position = fen_positon_to_my_position(en_passant_state)
         en_passant_plane[position[0]][position[1]] = 1
-
-    fifty_move_count = int(board_fen_list[4])
+    fifty_move_count = eval(board_fen_list[4])
     fifty_move_plane = np.full((8, 8), fifty_move_count)
 
     castling_state = board_fen_list[2]
@@ -227,6 +225,7 @@ def first_person_view_policy(policy, flip):
 def convert_board_to_plane(board_fen):
     return get_feature_plane(first_person_view_fen(board_fen, is_black_turn(board_fen)))
 
+
 # --------------------------------------------
 # Train
 # --------------------------------------------
@@ -253,20 +252,19 @@ class Batchgen(object):
         :return:
         '''
         feature_plane_list = []
-        policy_list = []
-        value_list = []
-        for board_fen, policy, value in data:
-            feature_plane = convert_board_to_plane(board_fen)
-            round_time = int(board_fen.split(' ')[5])
-            value_weight = min(5, round_time) / 5
-            learning_value = value * value_weight + evaluate_board(board_fen) * (1 - value_weight)
 
+        value_list = []
+        for board_fen, value in data:
+            feature_plane = get_feature_plane(board_fen)
+            round_time = int(board_fen.split(' ')[5])
+            value = float(value)
+            learning_value = np.tanh(value)
+            
             feature_plane_list.append(feature_plane)
-            policy_list.append(first_person_view_policy(policy, is_black_turn(board_fen)))
             value_list.append(learning_value)
 
         return np.array(feature_plane_list, dtype=np.float32), \
-               np.array(policy_list, dtype=np.float32), np.array(value_list, dtype=np.float32)
+               np.array(value_list, dtype=np.float32)
 
     def __len__(self):
         return len(self.data)

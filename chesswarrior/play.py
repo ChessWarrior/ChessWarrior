@@ -13,31 +13,34 @@ import chess
 
 from .model import ChessModel
 from .config import Config
-from .utils import convert_board_to_plane,  get_all_possible_moves, first_person_view_fen, evaluate_board
+from .utils import convert_board_to_plane, get_all_possible_moves, first_person_view_fen, get_feature_plane, \
+    is_black_turn, first_person_view_policy
 
 
 logger = logging.getLogger(__name__)
 
 class Player(object):
     """Using the best model to play"""
-
-    # Not urgent
     def __init__(self, config: Config):
         self.config = config
         self.model_path = self.config.resources.best_model_dir
         self.model = None
+        self.value_movel = None
         self.board = None
         self.choise = None
-        self.search_depth = 5
+        self.search_depth = 3
         self.move_value = {}
         self.move_hash = {}
         self.policies = []
         self.cnt = []
+        self.moves_cnt = 0
+
         self.INF = 0x3f3f3f3f
 
     def start(self, choise):
         try:
             self.model = load_model(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
+            self.value_model = load_model(os.path.join(self.config.resources.best_model_dir, "value.h5"))
             logger.info("Load best model successfully.")
         except OSError:
             logger.fatal("Model cannot find!")
@@ -49,7 +52,7 @@ class Player(object):
         self.move_hash = {move: i for (i, move) in enumerate(all_moves)}
 
         if choise == 1:
-            self.board = chess.Board(first_person_view_fen(self.board.fen(), 1))
+            self.board = chess.Board(first_person_view_fen(self.board.fen(), 1))  #先让黑棋走
             print(self.board)
             while True:
                 opponent_move = input("your move:")
@@ -82,6 +85,7 @@ class Player(object):
                     self.board.pop()
                     self.board.pop()
                     logger.info("Undo done.")
+                    self.moves_cnt -= 1
                     continue
                 try:
                     if choise == 1:
@@ -100,86 +104,108 @@ class Player(object):
     def play(self):
         """
         return my move
+        注意，到了这个函数，只需考虑自己是白方的
+        相应转换工作在start函数已经完成，这里无需重复考虑
         """
-        feature_plane = convert_board_to_plane(self.board.fen())
+        feature_plane = get_feature_plane(self.board.fen())
         feature_plane = feature_plane[np.newaxis, :]
-        policy, value = self.model.predict(feature_plane, batch_size=1)
-        print("value: %.2f" % value[0][0])
-        print("policy: %.2f" % policy[0][0])
-        #Attention policy is like [[0,0,1,......]]
-        legal_moves = self.board.legal_moves
-        
-        '''
-        return alpha_beta_search()
-        '''
+        policy, _ = self.model.predict(feature_plane, batch_size=1)
 
-        self.alpha_beta_search(self.board, self.search_depth, -self.INF, self.INF)
-        candidates = {}  # {move : policy}
-        for move in legal_moves:
-            if move in self.move_value:
+        candidates = {}
+        #小于5步(开局)，直接根据policy进行下棋
+        if self.moves_cnt <= 5:
+            legal_moves = self.board.legal_moves
+            for move in legal_moves:
+                move = move.uci()
+                p = policy[0][self.move_hash[move]]
+                candidates[move] = p
+            x = sorted(candidates.items(), key=lambda x:x[1], reverse=True)
+        else:
+        #大于5步，根据alpha-beta search的搜索value来下棋
+            self.alpha_beta_search(self.board, self.search_depth, -self.INF, self.INF, 1)  #alpha=-INF, beta=INF, color=1表示是自己
+            for move in self.move_value:
                 v = self.move_value[move]
                 move = move.uci()
-                k = self.move_hash[move]
-                p = policy[0][k]
-                candidates[move] = p*(1+v)
+                p = policy[0][self.move_hash[move]]
+                print(move, str(v), str(p))
+                v = ((1 + v) ** 2) * p
+                candidates[move] = (v, p)
+            x = sorted(candidates.items(), key=lambda x:(x[1][0], x[1][1]), reverse=True)
+           
+        print('moves_cnt: ', self.moves_cnt)
+        self.moves_cnt += 1 #步数+1
+        self.move_value.clear()
+        return x[0][0]  #返回move
+
+
+    def alpha_beta_search(self, board, depth, alpha, beta, color):
+        '''
+        board是当前棋面
+        depth是当前搜索深度
+        alpha beta
+        color是当前的下棋者
+        '''
+        #如果搜到游戏结束了，直接返回INF
+        if board.is_game_over():
+            return -color*self.INF
         
-        x =  sorted(candidates.items(), key=lambda x:x[1], reverse=True)
-        
-        print("evaluation: %f" % x[0][1])
-        self.policies.append(x[0][1])
-
-        #plt.plot(range(len(self.policies)), self.policies)
-        #plt.show()
-
-        return x[0][0]
-
-    def self_play(self):
-        pass
-
-    def alpha_beta_search(self, board, depth, alpha, beta):
+        #如果达到搜索层数，直接返回value
         if depth == 0:
-            return self.valuation(board)
-        if self.search_depth > depth:
-            board = chess.Board(first_person_view_fen(board.fen(),1))
+            if color == 1:
+                return -self.valuation(chess.Board(first_person_view_fen(self.board.fen(), 1)))
+            else:
+                return self.valuation(board)
 
-        legal_moves_list = []
-        feature_plane = convert_board_to_plane(board.fen())
-        feature_plane = feature_plane[np.newaxis, :]
-        policy_arr, value = self.model.predict(feature_plane, batch_size=1)
-        policy_arr = policy_arr[0]
+        #在policy网络预测的值取前4个概率最大的走子
+        legal_moves_list = list(board.legal_moves)
+        #print()
 
         policy_list = []
-        for move in board.legal_moves:
+        if color == 1:
+            feature_plane = convert_board_to_plane(board.fen())
+            feature_plane = feature_plane[np.newaxis, :]
+            policy, _ = self.model.predict(feature_plane, batch_size=1)
+
+            policy = [first_person_view_policy(policy[0], is_black_turn(board.fen()))]
+            policy_list = [ (move, policy[0][self.move_hash[move.uci()]]) for move in legal_moves_list]
+            policy_list = sorted(policy_list, key=lambda x:x[1], reverse=True) #从大到小排序
+        else:
+            for move in legal_moves_list:
+                policy_list.append((move, 1))
+
+        #搜索前4个
+        threshold = min(0.01, max([policy_v[1] for policy_v in policy_list]))
+        lim = 5 if self.search_depth == depth else 10
+
+        for move, policy_value in (policy_list[:lim] if color == 1 else policy_list):
+            if policy_value < threshold:
+                continue
+
             board.push(move)
-            legal_moves_list.append(move)
-            policy_list.append(policy_arr[self.move_hash[move.uci()]])
-            board.pop()
 
-        move_list = []
-        policy_sort = sorted(policy_list, reverse=True)
-        for i in range(min(4, len(legal_moves_list))):
-            move = legal_moves_list[policy_list.index(policy_sort[i])]
-            move_list.append(move)
+            value = self.alpha_beta_search(board, depth - 1, alpha, beta, -color)
 
-
-        for move in move_list:
-            board.push(move)
-            value = -self.alpha_beta_search(board, depth-1, -beta, -alpha)
             board.pop()
             if self.search_depth == depth:
                 self.move_value[move] = value
-            if value > alpha:
-                alpha = value
-            if alpha >= beta:
+                #print(move.uci())
+            '''if depth == 1:
+                print(move.uci(), is_black_turn(board.fen()), ' ', board.fen(), 'policy=', _)'''
+            if color == 1:
+                alpha = max(alpha, value)
+            else:
+                beta = min(beta, value)
+            if beta <= alpha:
                 break
-        return alpha
+        return alpha if color == 1 else beta
     
     def valuation(self, board):
-        weight = 0.2
-        feature_plane = convert_board_to_plane(board.fen())
+        #返回value network的估计值 (默认是针对白方)
+        feature_plane = get_feature_plane(board.fen())
         feature_plane = feature_plane[np.newaxis, :]
-        _, value = self.model.predict(feature_plane, batch_size=1)
-        return value[0][0] * weight + evaluate_board(board.fen()) * (1 - weight)
+        value = self.value_model.predict(feature_plane, batch_size=1)
+        #print(board.fen(), ' ', value[0][0])
+        return int(10.0 * value[0][0])
 
 
 def convert_black_uci(move):

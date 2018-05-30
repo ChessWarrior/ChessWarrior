@@ -35,13 +35,12 @@ class Trainer(object):
                 self.ChessModel = ChessModel(config=self.config)
                 self.ChessModel.build()
                 self.model = self.ChessModel.model
-                self.model.compile(optimizer=keras.optimizers.adam(),
-                                   loss=['categorical_crossentropy', 'mean_squared_error'],
-                                   loss_weights=self.config.training.loss_weights)
+                self.model.compile(optimizer=keras.optimizers.adam(lr=self.config.training.learning_rate),
+                                   loss='mean_squared_error')
                 logger.info('A new model is born.')
 
 
-        self.data_files = os.listdir(self.config.resources.sl_processed_data_dir)
+        self.data_files = os.listdir(self.config.resources.value_data_dir)
         if not self.data_files:
             logger.fatal("No Porcessed data!")
             raise RuntimeError("No processed data!")
@@ -56,20 +55,15 @@ class Trainer(object):
             logger.info('epoch %d start!' % epoch)
 
             for data_file in self.data_files:
-                with open(os.path.join(self.config.resources.sl_processed_data_dir, data_file), "r", encoding='utf-8') as file:
+                with open(os.path.join(self.config.resources.value_data_dir, data_file), "r", encoding='utf-8') as file:
                     data = json.load(file)
                     batches = Batchgen(data, self.config.training.batch_size)
-                    for feature_plane_array, policy_array, value_array in batches:
-                        history_callback = self.model.fit(feature_plane_array, [policy_array, value_array],
-                                       validation_split=0.1, shuffle=True, verbose=2)
+                    for feature_plane_array, value_array in batches:
+                        history_callback = self.model.fit(feature_plane_array, value_array,
+                                        validation_split=0.1, shuffle=True, verbose=2)
                         loss = history_callback.history["loss"][0]
-                        policy_out_loss =  history_callback.history["policy_out_loss"][0]
-                        value_out_loss = history_callback.history["value_out_loss"][0]
                         val_loss =  history_callback.history["val_loss"][0]
-                        val_policy_out_loss = history_callback.history["val_policy_out_loss"][0]
-                        val_value_out_loss = history_callback.history["val_value_out_loss"][0]
-                        logger.debug("loss: %f - policy_out_loss: %f - value_out_loss: %f - val_loss: %f - val_policy_out_loss: %f - val_value_out_loss: %f " % 
-                        (loss, policy_out_loss, value_out_loss, val_loss, val_policy_out_loss, val_value_out_loss))
+                        logger.debug("loss: %f val_loss: %f " % (loss, val_loss))
 
             self.model.save(os.path.join(self.config.resources.best_model_dir, "best_model.h5"))
             with open(os.path.join(self.config.resources.best_model_dir, "epoch.txt"), "w") as file:
