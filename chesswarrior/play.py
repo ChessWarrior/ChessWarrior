@@ -14,7 +14,7 @@ import chess
 from .model import ChessModel
 from .config import Config
 from .utils import convert_board_to_plane, get_all_possible_moves, first_person_view_fen, get_feature_plane, \
-    is_black_turn, first_person_view_policy
+    is_black_turn, first_person_view_policy, evaluate_board
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class Player(object):
         self.config = config
         self.model_path = self.config.resources.best_model_dir
         self.model = None
-        self.value_movel = None
+        self.value_model = None
         self.board = None
         self.choise = None
         self.search_depth = 3
@@ -113,7 +113,7 @@ class Player(object):
 
         candidates = {}
         #小于5步(开局)，直接根据policy进行下棋
-        if self.moves_cnt <= 5:
+        if self.moves_cnt <= -1:
             legal_moves = self.board.legal_moves
             for move in legal_moves:
                 move = move.uci()
@@ -123,12 +123,17 @@ class Player(object):
         else:
         #大于5步，根据alpha-beta search的搜索value来下棋
             self.alpha_beta_search(self.board, self.search_depth, -self.INF, self.INF, 1)  #alpha=-INF, beta=INF, color=1表示是自己
+            max_p = 0.0
+            for move in self.move_value:
+                max_p = max(max_p, policy[0][self.move_hash[move.uci()]])
+
             for move in self.move_value:
                 v = self.move_value[move]
                 move = move.uci()
                 p = policy[0][self.move_hash[move]]
                 print(move, str(v), str(p))
-                v = ((1 + v) ** 2) * p
+                if max_p > 0.2:
+                    v = (np.exp(30 * v)) * p
                 candidates[move] = (v, p)
             x = sorted(candidates.items(), key=lambda x:(x[1][0], x[1][1]), reverse=True)
            
@@ -161,7 +166,7 @@ class Player(object):
         #print()
 
         policy_list = []
-        if color == 1:
+        if self.search_depth == depth:
             feature_plane = convert_board_to_plane(board.fen())
             feature_plane = feature_plane[np.newaxis, :]
             policy, _ = self.model.predict(feature_plane, batch_size=1)
@@ -175,9 +180,9 @@ class Player(object):
 
         #搜索前4个
         threshold = min(0.01, max([policy_v[1] for policy_v in policy_list]))
-        lim = 5 if self.search_depth == depth else 10
+        lim = 5
 
-        for move, policy_value in (policy_list[:lim] if color == 1 else policy_list):
+        for move, policy_value in (policy_list[:lim] if self.search_depth == depth else policy_list):
             if policy_value < threshold:
                 continue
 
@@ -201,11 +206,12 @@ class Player(object):
     
     def valuation(self, board):
         #返回value network的估计值 (默认是针对白方)
-        feature_plane = get_feature_plane(board.fen())
+        '''feature_plane = get_feature_plane(board.fen())
         feature_plane = feature_plane[np.newaxis, :]
-        value = self.value_model.predict(feature_plane, batch_size=1)
+        value = self.value_model.predict(feature_plane, batch_size=1)'''
         #print(board.fen(), ' ', value[0][0])
-        return int(10.0 * value[0][0])
+        value = evaluate_board(board.fen())
+        return value
 
 
 def convert_black_uci(move):

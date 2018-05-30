@@ -117,6 +117,7 @@ def is_black_turn(fen):
 
 def evaluate_board(fen):
     chess_piece_value = {'Q' : 14, 'R' : 5, 'B' : 3.25, 'K' : 3, 'N' : 3, 'P' : 1}
+    center = set([chess.D4, chess.D5, chess.E4, chess.E5])
     current_value = 0.0
     total_value = 0.0
     for ch in fen.split(' ')[0]:
@@ -129,9 +130,43 @@ def evaluate_board(fen):
             current_value -= chess_piece_value[ch.upper()]
             total_value += chess_piece_value[ch.upper()]
 
+    chess_board = chess.Board(fen)
+
+    move_to_square_weight = 0.2
+
+    for move in chess_board.legal_moves:
+        if move.to_square in center:
+            current_value += (1 if chess_board.turn == chess.WHITE else -1) * move_to_square_weight
+            total_value += move_to_square_weight
+
+    chess_board.push(chess.Move(None, None))
+    for move in chess_board.legal_moves:
+        if move.to_square in center:
+            current_value += (1 if chess_board.turn == chess.WHITE else -1) * move_to_square_weight
+            total_value += move_to_square_weight
+    chess_board.pop()
+
+    mobility = len(list(chess_board.legal_moves)) * (1 if chess_board.turn == chess.WHITE else -1)
+    current_mobility = mobility
+    total_mobility = abs(mobility)
+
+    chess_board.push(chess.Move(None, None))
+    mobility = len(list(chess_board.legal_moves)) * (1 if chess_board.turn == chess.WHITE else -1)
+    chess_board.pop()
+
+    current_mobility += mobility
+    total_mobility += abs(mobility)
+
+    current_value += 1.5 * current_mobility / total_mobility
+    total_value += 1.5
+
+
+
     value_rate = current_value / total_value
-    if is_black_turn(fen):
-        value_rate = -value_rate
+    '''if is_black_turn(fen):
+        value_rate = -value_rate'''
+
+
     return np.tanh(value_rate * 3)
 
 def get_board_string(board_fen_0):
