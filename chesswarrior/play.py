@@ -113,7 +113,7 @@ class Player(object):
 
         candidates = {}
         #小于5步(开局)，直接根据policy进行下棋
-        if self.moves_cnt <= 6wei:
+        if self.moves_cnt <= 6:
             legal_moves = self.board.legal_moves
             for move in legal_moves:
                 move = move.uci()
@@ -133,7 +133,8 @@ class Player(object):
                 p = policy[0][self.move_hash[move]]
                 print(move, str(v), str(p))
                 if max_p > 0.2:
-                    v = (np.exp(30 * v)) * p
+                    if v != self.INF and v != -self.INF:
+                        v = (np.exp(30 * v)) * p
                 candidates[move] = (v, p)
             x = sorted(candidates.items(), key=lambda x:(x[1][0], x[1][1]), reverse=True)
            
