@@ -35,6 +35,7 @@ class Player(object):
         self.cnt = []
         self.moves_cnt = 0
 
+        self.used_time = 0
         self.INF = 0x3f3f3f3f
 
     def start(self, choise):
@@ -51,13 +52,29 @@ class Player(object):
         all_moves = get_all_possible_moves()
         self.move_hash = {move: i for (i, move) in enumerate(all_moves)}
 
+        with open(self.config.playing.oppo_move_dir, "w") as f:
+            f.write('')
+        with open(self.config.playing.ai_move_dir, "w") as f:
+            f.write('')
+
+        pre_oppo_move = None
         if choise == 1:
             self.board = chess.Board(first_person_view_fen(self.board.fen(), 1))  #先让黑棋走
             print(self.board)
             while True:
-                opponent_move = input("your move:")
+
+                while True:
+                    #ai move
+                    with open(self.config.playing.oppo_move_dir, "r") as f:
+                        opponent_move = f.read()
+                    if opponent_move == pre_oppo_move or not opponent_move:
+                        time.sleep(0.1)
+                    else:
+                        pre_oppo_move = opponent_move
+                        break
                 try:
                     convert_move = convert_black_uci(opponent_move)
+                    convert_move = self.board.parse_san(convert_move).uci()
                     convert_move = self.board.parse_uci(convert_move)
                     break
                 except ValueError:
@@ -69,18 +86,36 @@ class Player(object):
             start = time.time()
             my_move = self.play()   #get ai move
             end = time.time()
+
+            with open(self.config.playing.ai_move_dir, "w") as f:
+                if choise == 0:
+                    f.write(my_move.uci())
+                else:
+                    out = self.board.san(my_move)
+                    out = convert_black_uci(out)
+                    f.write(out)
+            self.used_time += end - start
             print("time: %.2f" % (end - start))
             #my_move = convert_black_uci(my_move)
-            convert_move = self.board.parse_uci(my_move)
-            self.board.push(convert_move) # ai move. update board
+            self.board.push(my_move) # ai move. update board
             if choise == 1:
-                logger.info("AI move: %s" % convert_black_uci(my_move))
+                logger.info("AI move: %s" % convert_black_uci(my_move.uci()))
             else:
-                logger.info("AI move: %s" % my_move)
+                logger.info("AI move: %s" % my_move.uci())
             
             print(self.board)
             while True:
-                opponent_move = input("your move:")
+                while True:
+                    #ai move
+                    with open(self.config.playing.oppo_move_dir, "r") as f:
+                        opponent_move = f.read()
+                    if opponent_move == pre_oppo_move or not opponent_move:
+                        time.sleep(0.1)
+                    else:
+                        pre_oppo_move = opponent_move
+                        break
+                
+                
                 if opponent_move == "undo": #undo 
                     self.board.pop()
                     self.board.pop()
@@ -90,8 +125,9 @@ class Player(object):
                 try:
                     if choise == 1:
                         convert_move = convert_black_uci(opponent_move)
+                        convert_move = self.board.parse_san(convert_move).uci()
                     else:
-                        convert_move = opponent_move
+                        convert_move = self.board.parse_san(opponent_move).uci()
                     convert_move = self.board.parse_uci(convert_move)
                     break
                 except ValueError:
@@ -113,11 +149,10 @@ class Player(object):
 
         candidates = {}
         #小于5步(开局)，直接根据policy进行下棋
-        if self.moves_cnt <= 6:
+        if self.moves_cnt <= 4 or self.used_time >= 569:
             legal_moves = self.board.legal_moves
             for move in legal_moves:
-                move = move.uci()
-                p = policy[0][self.move_hash[move]]
+                p = policy[0][self.move_hash[move.uci()]]
                 candidates[move] = p
             x = sorted(candidates.items(), key=lambda x:x[1], reverse=True)
         else:
@@ -129,8 +164,7 @@ class Player(object):
 
             for move in self.move_value:
                 v = self.move_value[move]
-                move = move.uci()
-                p = policy[0][self.move_hash[move]]
+                p = policy[0][self.move_hash[move.uci()]]
                 print(move, str(v), str(p))
                 if max_p > 0.2:
                     if v != self.INF and v != -self.INF:
@@ -153,6 +187,8 @@ class Player(object):
         '''
         #如果搜到游戏结束了，直接返回INF
         if board.is_game_over():
+            if board.is_stalemate():
+                return 0
             return -color*self.INF
         
         #如果达到搜索层数，直接返回value

@@ -55,8 +55,13 @@ class TrainerConfig(object):
 
 class PlayerConfig(object):
     """Playing Configuration"""
-    # Not urgent
-    pass
+    cur_dir = os.path.abspath(__file__)
+    d = os.path.dirname
+    base_dir = d(d(cur_dir))
+
+    oppo_move_dir = os.path.join(base_dir, "oppo_move.txt")
+    ai_move_dir = os.path.join(base_dir, "ai_move.txt")
+    
 
 class Config(object):
     """Configurations"""

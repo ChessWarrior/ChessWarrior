@@ -132,7 +132,7 @@ def evaluate_board(fen):
 
     chess_board = chess.Board(fen)
 
-    move_to_square_weight = 0.2
+    move_to_square_weight = 0.05
 
     for move in chess_board.legal_moves:
         if move.to_square in center:
