@@ -28,7 +28,7 @@ class Player(object):
         self.value_model = None
         self.board = None
         self.choise = None
-        self.search_depth = 3
+        self.search_depth = 4
         self.move_value = {}
         self.move_hash = {}
         self.policies = []
@@ -113,7 +113,7 @@ class Player(object):
 
         candidates = {}
         #小于5步(开局)，直接根据policy进行下棋
-        if self.moves_cnt <= -1:
+        if self.moves_cnt <= 6wei:
             legal_moves = self.board.legal_moves
             for move in legal_moves:
                 move = move.uci()
@@ -166,7 +166,7 @@ class Player(object):
         #print()
 
         policy_list = []
-        if self.search_depth == depth:
+        if color == 1:
             feature_plane = convert_board_to_plane(board.fen())
             feature_plane = feature_plane[np.newaxis, :]
             policy, _ = self.model.predict(feature_plane, batch_size=1)
@@ -182,7 +182,7 @@ class Player(object):
         threshold = min(0.01, max([policy_v[1] for policy_v in policy_list]))
         lim = 5
 
-        for move, policy_value in (policy_list[:lim] if self.search_depth == depth else policy_list):
+        for move, policy_value in (policy_list[:lim] if color == 1 else policy_list):
             if policy_value < threshold:
                 continue
 
