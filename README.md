@@ -25,6 +25,6 @@ python 3.x
 just 
 > pip install -r requirements.txt
 
-pretrained models:
+## pretrained models
 https://pan.baidu.com/s/1C2FVG9vQds-odrfgw5bUGQ 
 passwd: imhk
