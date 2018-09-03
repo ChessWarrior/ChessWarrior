@@ -1,6 +1,12 @@
 # ChessWarrior
 Final Project of 2018 Artificial Intelligence at Tongji Univ.
 
+A Chess AI based on Alphago and Alphago Zero
+
+# Demo
+
+
+
 # Usage
 There are three modes: data train and play
 - data: generate processed training data
@@ -14,7 +20,8 @@ There are three modes: data train and play
 > python run.py -mode play --no-cuda
 
 # Requirements
-environment windows
+environment windows/linux
+
 python 3.x
 - tensorflow-gpu
 - keras==2.1.5
