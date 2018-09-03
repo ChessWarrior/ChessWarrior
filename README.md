@@ -5,7 +5,9 @@ A Chess AI based on Alphago and Alphago Zero
 
 # Demo
 
+**ChessWarrior(white) vs. Stockfish(balck; elo 1600)**
 
+![demo](https://github.com/ChessWarrior/ChessWarrior/blob/master/img/demo.gif)
 
 # Usage
 There are three modes: data train and play
