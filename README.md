@@ -1,7 +1,9 @@
 # ChessWarrior
-Final Project of 2018 Artificial Intelligence at Tongji Univ.
+Final Project of Spring 2018 Artificial Intelligence at Tongji Univ.
 
 A Chess AI based on Alphago and Alphago Zero
+
+Currently finished supervised learning with alpha-beta search.
 
 # Demo
 
