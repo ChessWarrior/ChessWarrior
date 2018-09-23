@@ -5,6 +5,8 @@ A Chess AI based on Alphago and Alphago Zero
 
 Currently finished supervised learning with alpha-beta search.
 
+A **pytorch** version can be found here [alpha-chess](https://github.com/zhongyuchen/alpha-chess)
+
 # Demo
 
 **ChessWarrior(white) vs. Stockfish(balck; elo 1600)**
